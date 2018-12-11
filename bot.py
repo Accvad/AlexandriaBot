@@ -42,7 +42,7 @@ def send_welcome(message):
 def send_(message):
     if id_checker(message):
         buttons = types.InlineKeyboardMarkup()
-        searchButton = types.InlineKeyboardButton(text="Поиск(UС)", callback_data="search")
+        searchButton = types.InlineKeyboardButton(text="Поиск(UС)", callback_data="search0/length0")
         finishedButton = types.InlineKeyboardButton(text="Законченное(UC)", callback_data="finished")
         wishButton = types.InlineKeyboardButton(text="Желаемое(UC)", callback_data="wish")
         subButton = types.InlineKeyboardButton(text="Подписки(UC)", callback_data="sub")
@@ -76,13 +76,22 @@ def callback(call):
             cur.execute('SELECT * FROM users WHERE id_user = {0};'.format(call.message.chat.id))  # Вытаскиваем людей
             user = cur.fetchall()
             bot.send_message(call.message.chat.id, 'Профиль\n\nВаш ID: {0}\nУровень: {1}\nУровень: {2}\nОпыт: {3}'.format(user[0][0], user[0][1], user[0][2], user[0][3]))
-        elif call.data == "search":
-            cur.execute('SELECT * FROM media JOIN types on types.id_type = media.id_type')  # Вытаскиваем медиа
+        elif "search" in call.data:
+            splitCall = call.data.split("/")
+            page = splitCall[0].replace("search", "")
+            length = splitCall[1].replace("length", "")
+            limit = 5
+            last = int()
+            i = limit * int(page) #Номер продукта на странице
+            if i == 0:
+                cur.execute('SELECT * FROM media JOIN types on types.id_type = media.id_type')  # Вытаскиваем медиа
+                media = cur.fetchall()
+                length = len(media)
+            cur.execute('SELECT * FROM media JOIN types on types.id_type = media.id_type ORDER BY id_media LIMIT {1} OFFSET {0}'.format(i, limit))  # Вытаскиваем медиа
             media = cur.fetchall()
-            i = 1
             for item in media:
                 line = str()
-                line += str(i)
+                line += str(i+1)
                 line += "\nРаздел:              " + item[9]
                 line += "\nНазвание:        " + item[0]
                 line += "\nДата выхода:  " + item[2]
@@ -92,11 +101,18 @@ def callback(call):
                 i += 1
                 buttons = types.InlineKeyboardMarkup()
                 selectButton = types.InlineKeyboardButton(text="Выбрать", callback_data="select{0}".format(item[5]))
-                buttons.add(selectButton)
-                bot.send_message(call.message.chat.id, line, reply_markup=buttons)
+                if i == (limit * int(page)) + limit and i != int(length):
+                    nextButton = types.InlineKeyboardButton(text="Следующие {0}". format(limit),
+                                                            callback_data="search{0}/length{1}".format(int(page)+1, length))
+                    buttons.add(selectButton, nextButton)
+                    bot.send_message(call.message.chat.id, line, reply_markup=buttons)
+                else:
+                    buttons.add(selectButton)
+                    bot.send_message(call.message.chat.id, line, reply_markup=buttons)
+
         elif "select" in call.data:
             mediaId = call.data.replace("select", "")
-            cur.execute('SELECT * FROM media JOIN types on types.id_type = media.id_type WHERE id_media = {0}'.format(mediaId))  # Вытаскиваем медиа
+            cur.execute('SELECT * FROM media JOIN types ON types.id_type = media.id_type WHERE id_media = {0}'.format(mediaId))  # Вытаскиваем медиа
             media = cur.fetchall()
             line = str()
             line += "\nРаздел:              " + media[0][9]
