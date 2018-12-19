@@ -28,13 +28,13 @@ def id_checker(message):
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     if id_checker(message):
-        bot.send_message(message.chat.id, "Howdy! Добро пожаловать в Альфа-версию Lighthouse! \n"
+        bot.send_message(message.chat.id, "Howdy! Добро пожаловать в Lighthouse! \n"
                                           "Вы уже зарегистрированы!\n\n Для продолжения просто напишите /menu")
     else:
         button = types.InlineKeyboardMarkup()
         reg_button = types.InlineKeyboardButton(text="Нажмите на кнопку чтобы зарегистрироваться C;", callback_data="reg")
         button.add(reg_button)
-        bot.send_message(message.chat.id, "Howdy! Добро пожаловать в Альфа-версию Lighthouse! \n"
+        bot.send_message(message.chat.id, "Howdy! Добро пожаловать в Lighthouse! \n"
                                           "Для начала нужно пройти регистрацию", reply_markup=button)
 
 
@@ -65,10 +65,11 @@ def callback(call):
             bot.send_message(call.message.chat.id,
                              'Вы уже зарегистрированы в Lighthouse! =)\nВаш ID: {0}'.format(call.message.chat.id))
         else:                                                # Если не зарегистрирован
-            cur.execute('INSERT INTO users (id_user, name, level, exp) VALUES ({0}, \'{1}\', 1, 0);'.format(call.message.chat.id, call.message.chat.first_name))
+            cur.execute('INSERT INTO users (id_user, name, level, exp) '
+                        'VALUES ({0}, \'{1}\', 1, 0);'.format(call.message.chat.id, call.message.chat.first_name))
             bdconnect.commit()
             bot.delete_message(call.message.chat.id,call.message.message_id)
-            bot.send_message(call.message.chat.id, 'Howdy! Добро пожаловать в Альфа-версию Lighthouse! \n'
+            bot.send_message(call.message.chat.id, 'Howdy! Добро пожаловать в Lighthouse! \n'
                                                    'Вы были успешно зарегистрированы!\n\nДля продолжения просто напишите /menu')
     if id_checker(call.message): #Проверка регистрации
         if call.data == "profile":
@@ -102,7 +103,8 @@ def callback(call):
             else:
                 cur.execute('SELECT media.id_media, types.name, media.name, authors.name, release_date, jenre, rating_average '
                             'FROM media JOIN types ON types.id_type = media.id_type JOIN authors ON authors.id_author = media.id_author '
-                            'WHERE UPPER(media.name) LIKE UPPER(\'%{2}%\') AND media.id_type = {3} ORDER BY id_media LIMIT {0} OFFSET {1}'.format(limit, i, search, type))  # Вытаскиваем медиа
+                            'WHERE UPPER(media.name) LIKE UPPER(\'%{2}%\') '
+                            'AND media.id_type = {3} ORDER BY id_media LIMIT {0} OFFSET {1}'.format(limit, i, search, type))  # Вытаскиваем медиа
             media = cur.fetchall()
             if len(media) == 0:
                 bot.send_message(call.message.chat.id, "Ничего не найдено :с")
@@ -202,23 +204,23 @@ def callback(call):
                     cur.execute('INSERT INTO finished_list (id_user, id_media, name_media, rating)'
                                 'VALUES ({0}, {1}, \'{2}\', {3});'.format(call.message.chat.id, mediaId, media[0][0], rate))
                     bdconnect.commit()
-                    bot.send_message(call.message.chat.id, "Продукт успешно добавлен в список желаемого")  # TODO LVL
+                    bot.send_message(call.message.chat.id, "Продукт успешно добавлен в список законченного")  # TODO LVL
                 else:
                     cur.execute('UPDATE finished_list SET rating = {0} WHERE id_user = {1} AND id_media = {2}'.format(rate, call.message.chat.id,mediaId))  # Для проверки наличия медиа в законченном
                     bdconnect.commit()
                     bot.send_message(call.message.chat.id, "Продукт успешно добавлен в список законченного")  # TODO LVL
 
         elif "delete" in call.data:
-            cur.execute('SELECT * FROM finished_list WHERE id_user = {0} AND id_media = {1}'.format(call.message.chat.id,mediaId))  # Для проверки наличия медиа в законченном
+            mediaId = call.data.replace("delete", "")
+            cur.execute('SELECT * FROM finished_list WHERE id_user = {0} AND id_media = {1}'.format(call.message.chat.id, mediaId))  # Для проверки наличия медиа в законченном
             mediaChecker = cur.fetchall()
-            if len(mediaChecker) == 0:  # продукта нет в списке >добавить
-                mediaId = call.data.replace("delete", "")
+            if len(mediaChecker) != 0:  # продукта нет в списке >добавить
                 cur.execute('DELETE FROM finished_list WHERE id_user = {0} AND id_media = {1}'.format(call.message.chat.id, mediaId))
                 bdconnect.commit()
                 bot.send_message(call.message.chat.id, "Продукт был удален из вашего списка")  # TODO LVL
                 # TODO изменение рейтинга медиа
             else:
-                bot.send_message(call.message.chat.id, "Продукт был удален из вашего списка")  # TODO LVL
+                bot.send_message(call.message.chat.id, "Продукт уже удален из вашего списка")  # TODO LVL
 
         elif "watched" in call.data:
             splitCall = call.data.split("/")
@@ -338,7 +340,7 @@ def callback(call):
 def mesasge_answer(message):
     search = message.text
     buttons = types.InlineKeyboardMarkup()
-    nofilter_button = types.InlineKeyboardButton(text="без фильтра", callback_data="list0/length0/{0}/type0".format(search))
+    nofilter_button = types.InlineKeyboardButton(text="Без фильтра", callback_data="list0/length0/{0}/type0".format(search))
     gamesf_button = types.InlineKeyboardButton(text="Игры", callback_data="list0/length0/{0}/type1".format(search))
     filmsf_button = types.InlineKeyboardButton(text="Фильмы", callback_data="list0/length0/{0}/type2".format(search))
     buttons.add(nofilter_button, gamesf_button, filmsf_button)
